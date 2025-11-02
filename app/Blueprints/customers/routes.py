@@ -5,6 +5,7 @@ from marshmallow import ValidationError
 from . import customers_bp
 from app.extensions import limiter, cache
 from app.utils.util import encode_token, token_required
+from app.Blueprints.services.schemas import Services_Schema
 
 @customers_bp.route('/login', methods=['POST'])
 def customer_login():
@@ -53,6 +54,7 @@ def create_customer():
 def get_customers():
     all_customers = db.session.execute(db.select(Customer)).scalars().all()
     return Customers_Schema.jsonify(all_customers)
+
 @customers_bp.route('/<int:id>', methods=['GET'])
 def get_customer(id):
     customer = db.session.get(Customer, id)
@@ -88,3 +90,14 @@ def delete_customer(user_id):
     db.session.delete(customer)
     db.session.commit()
     return jsonify({"message": "customer deleted successfully."})
+
+@customers_bp.route('/my_tickets', methods=['GET'])
+@token_required
+def get_customer_tickets(user_id):
+    query = db.select(Customer).where(Customer.id == user_id)
+    customer = db.session.execute(query).scalars().first()
+    if not customer:
+        return jsonify({"message": "Customer not found."}), 404
+    
+    tickets = customer.services
+    return Services_Schema.jsonify(tickets)
